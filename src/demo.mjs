@@ -9,10 +9,18 @@ const source = await startFixture();
 let service;
 try {
   service = await startService({ source: source.url, directory });
-  const response = await fetch(service.url + '/receive?key=demo');
-  const result = await response.json();
-  console.log(JSON.stringify({ source: source.url, status: response.status, receipt: result }, null, 2));
-  if (!response.ok) process.exitCode = 1;
+  const single = await (await fetch(service.url + '/receive?key=demo')).json();
+  const root = encodeURIComponent('nsu=urn:port;s=Root');
+  const baseline = await (await fetch(service.url + `/inventory/receive?key=inventory&root=${root}`)).json();
+  await fetch(source.url + '/reorder'); // 模拟厂商维护后的命名空间编号重排
+  const drill = await (await fetch(service.url + `/inventory/diff?key=inventory&root=${root}`)).json();
+  console.log(JSON.stringify({
+    source: source.url,
+    service: service.url,
+    single,
+    points: baseline.value.points,
+    reorderDrill: drill.diff.summary,
+  }, null, 2));
 } finally {
   await service?.close();
   await source.close();

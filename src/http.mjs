@@ -32,6 +32,13 @@ export async function get(base, path) {
   const url = new URL(path, base);
   if (!['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)) throw new Error('演练源只允许本地地址');
   const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
-  if (!response.ok) throw new Error(`来源返回 ${response.status}`);
+  if (!response.ok) {
+    let detail = '';
+    try {
+      const body = await response.json();
+      if (body?.error) detail = `: ${body.error}`;
+    } catch { /* 来源未给出错误详情 */ }
+    throw new Error(`来源返回 ${response.status}${detail}`);
+  }
   return response;
 }
